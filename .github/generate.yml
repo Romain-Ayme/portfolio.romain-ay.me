@@ -1,0 +1,64 @@
+# Workflow pour générer un site Nuxt 3 avec Node.js LTS et PNPM
+
+name: Générer le site Nuxt
+
+on:
+  # S'exécute lors des push sur la branche par défaut
+  push:
+    branches: ["master"]
+
+  # Permet d'exécuter ce workflow manuellement depuis l'onglet Actions
+  workflow_dispatch:
+
+
+# Autoriser un seul déploiement simultané
+concurrency:
+  group: "build"
+  cancel-in-progress: false
+
+jobs:
+  # Tâche de build
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Configuration de PNPM
+      - name: Configuration de PNPM
+        uses: pnpm/action-setup@v4
+
+      # Configuration de Node.js (LTS)
+      - name: Configuration de Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: "pnpm"
+
+      # Cache pour les builds plus rapides
+      - name: Cache de build Nuxt
+        uses: actions/cache@v4
+        with:
+          path: |
+            .output
+            .nuxt
+            node_modules/.vite
+            node_modules/.cache
+          key: ${{ runner.os }}-nuxt-build-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-nuxt-build-
+
+      # Installation des dépendances
+      - name: Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      # Génération du site statique
+      - name: Générer le site statique avec Nuxt
+        run: pnpm run generate
+
+      # Archiver les fichiers générés comme artefact
+      - name: Archiver les fichiers générés
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio.romain-ay.me
+          path: .output/public
